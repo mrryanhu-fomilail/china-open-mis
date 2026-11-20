@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}操作日志 · {{ app_short }}{% endblock %}
+{% block page_title %}操作日志{% endblock %}
+{% block page_sub %}查询系统操作留痕（删除、状态变更、成绩录入等，最多显示最近 {{ log_max_rows }} 条）{% endblock %}
+
+{% block content %}
+<!-- 日志统计（2.4 节：关键操作留痕，便于追溯） -->
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card stat-card stat-primary h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.total }}</div>
+          <div class="stat-label">日志总条数</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-journal-text"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card stat-warning h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.today }}</div>
+          <div class="stat-label">今日操作条数</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card stat-info h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.operators }}</div>
+          <div class="stat-label">有操作记录的工作人员</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-people"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 筛选条件：操作类型 + 关键字 -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form class="row g-2 align-items-end" method="get" action="{{ url_for('system.log_list') }}">
+      <div class="col-md-3">
+        <label class="form-label" for="action">操作类型</label>
+        <select class="form-select" id="action" name="action">
+          <option value="">全部类型</option>
+          {% for item in action_options %}
+          <option value="{{ item }}" {% if action == item %}selected{% endif %}>{{ item }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label" for="keyword">关键字</label>
+        <input class="form-control" type="search" id="keyword" name="keyword" value="{{ keyword }}"
+               placeholder="操作人 / 员工编号 / 操作对象 / 详情">
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button class="btn btn-success" type="submit"><i class="bi bi-funnel me-1"></i>筛选</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('system.log_list') }}">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>重置
+        </a>
+        <span class="small text-muted ms-auto align-self-center">最多显示 {{ log_max_rows }} 条</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 日志列表 -->
+<div class="card">
+  <div class="card-header">
+    <span><i class="bi bi-journal-text me-1"></i>日志列表</span>
+    <span class="small text-muted">
+      共 {{ total_count }} 条{% if total_count > log_max_rows %}（仅展示最近 {{ log_max_rows }} 条）{% endif %}
+    </span>
+  </div>
+  <div class="card-body p-0">
+    {% if logs %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>日志号</th>
+            <th>操作时间</th>
+            <th>操作人</th>
+            <th>操作类型</th>
+            <th>操作对象</th>
+            <th>详情</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td class="small text-muted">{{ log.log_id }}</td>
+            <td class="small text-nowrap">
+              {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '—' }}
+            </td>
+            <td>
+              {{ log.staff_name or '系统' }}
+              {% if log.staff_id %}<div class="small text-muted">{{ log.staff_id }}</div>{% endif %}
+            </td>
+            <td>
+              <span class="badge text-bg-{{ action_badges.get(log.action, 'secondary') }}">{{ log.action }}</span>
+            </td>
+            <td class="small">{{ log.target or '—' }}</td>
+            <td class="small">{{ log.detail or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-hint"><i class="bi bi-journal-x me-1"></i>没有符合条件的操作日志</div>
+    {% endif %}
+  </div>
+
+  {% if pages > 1 %}
+  <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="small text-muted">第 {{ page }} / {{ pages }} 页（每页 {{ log_page_size }} 条）</span>
+    <nav aria-label="操作日志分页">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" {% if page > 1 %}href="{{ page_links[page - 2].url }}"{% else %}href="#" tabindex="-1"{% endif %}>上一页</a>
+        </li>
+        {% for item in page_links %}
+        <li class="page-item {% if item.no == page %}active{% endif %}">
+          <a class="page-link" href="{{ item.url }}">{{ item.no }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item {% if page >= pages %}disabled{% endif %}">
+          <a class="page-link" {% if page < pages %}href="{{ page_links[page].url }}"{% else %}href="#" tabindex="-1"{% endif %}>下一页</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+<div class="form-text mt-2">
+  <i class="bi bi-info-circle me-1"></i>
+  操作日志由系统在登录、新增、修改、删除、状态变更、重置密码、录入成绩等操作后自动写入，不可人工修改。
+</div>
+{% endblock %}

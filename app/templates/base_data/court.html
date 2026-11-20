@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% block title %}场地档案 · {{ app_short }}{% endblock %}
+{% block page_title %}场地档案{% endblock %}
+{% block page_sub %}基础数据管理 · 场地信息与可用状态维护（BR-02）{% endblock %}
+
+{% block content %}
+<!-- 概览 -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card stat-primary h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.total }}</div>
+          <div class="stat-label">场地总数</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-building"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card stat-primary h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.available }}</div>
+          <div class="stat-label">可用场地</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card stat-danger h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.maintenance }}</div>
+          <div class="stat-label">维护中场地</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-tools"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card stat-info h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.capacity }}</div>
+          <div class="stat-label">总容纳人数</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-people"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 检索条件 -->
+<div class="card mb-3">
+  <div class="card-header">
+    <span><i class="bi bi-funnel me-1"></i>检索条件</span>
+    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal"
+            data-bs-target="#courtModal" data-mode="create">
+      <i class="bi bi-plus-lg me-1"></i>新增场地
+    </button>
+  </div>
+  <div class="card-body">
+    <form method="get" action="{{ url_for('base_data.court_list') }}" class="row g-2 align-items-end">
+      <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="f-status">场地状态</label>
+        <select class="form-select form-select-sm" id="f-status" name="status">
+          <option value="">全部状态</option>
+          {% for code, label in COURT_STATUS.items() %}
+          <option value="{{ code }}" {% if filters.status == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <label class="form-label" for="f-keyword">关键字</label>
+        <input type="text" class="form-control form-control-sm" id="f-keyword"
+               name="keyword" placeholder="场地名称或编号" value="{{ filters.keyword }}">
+      </div>
+      <div class="col-12 col-lg-3">
+        <button type="submit" class="btn btn-sm btn-success me-1">
+          <i class="bi bi-search me-1"></i>检索
+        </button>
+        <a class="btn btn-sm btn-outline-secondary"
+           href="{{ url_for('base_data.court_list') }}">重置</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 场地列表 -->
+<div class="card">
+  <div class="card-header">
+    <span><i class="bi bi-building me-1"></i>场地列表</span>
+    <span class="small text-muted">共 {{ courts | length }} 片</span>
+  </div>
+  <div class="card-body p-0">
+    {% if courts %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>编号</th>
+            <th>场地名称</th>
+            <th>场地类型</th>
+            <th>容纳人数</th>
+            <th>比赛总数</th>
+            <th>未结束场次</th>
+            <th>状态</th>
+            <th class="text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in courts %}
+          <tr class="{% if c.status == 'M' %}table-light{% endif %}">
+            <td><span class="fw-semibold">{{ c.court_id }}</span></td>
+            <td>
+              <strong>{{ c.court_name }}</strong>
+              {% if c.status == 'M' %}
+              <div class="text-danger small"><i class="bi bi-tools me-1"></i>维护中，暂不参与排期</div>
+              {% endif %}
+            </td>
+            <td>{{ c.court_type }}</td>
+            <td>{{ c.capacity }} 座</td>
+            <td>{{ c.match_count }}</td>
+            <td>
+              {% if c.pending_count %}
+              <span class="badge text-bg-warning">{{ c.pending_count }} 场</span>
+              {% else %}
+              <span class="text-muted small">0 场</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge text-bg-{{ COURT_BADGE[c.status] }}">
+                  {{ court_status_name(c.status) }}
+                </span>
+                <form method="post" class="d-flex align-items-center gap-1"
+                      action="{{ url_for('base_data.court_status', court_id=c.court_id) }}"
+                      data-confirm="确定修改场地 {{ c.court_name }}（{{ c.court_id }}）的状态吗？改为维护中后，该场地已有 {{ c.pending_count }} 场比赛需要改场。">
+                  <select class="form-select form-select-sm" name="status"
+                          style="width: 5.6rem;" aria-label="场地状态">
+                    {% for code, label in COURT_STATUS.items() %}
+                    <option value="{{ code }}" {% if c.status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          title="保存场地状态"><i class="bi bi-arrow-repeat"></i></button>
+                </form>
+              </div>
+            </td>
+            <td class="text-end text-nowrap">
+              <button type="button" class="btn btn-sm btn-outline-primary"
+                      data-bs-toggle="modal" data-bs-target="#courtModal" data-mode="edit"
+                      data-court-id="{{ c.court_id }}"
+                      data-court-name="{{ c.court_name }}"
+                      data-court-type="{{ c.court_type }}"
+                      data-capacity="{{ c.capacity }}">
+                <i class="bi bi-pencil me-1"></i>编辑
+              </button>
+              <form method="post" class="d-inline"
+                    action="{{ url_for('base_data.court_delete', court_id=c.court_id) }}"
+                    data-confirm="确定删除场地 {{ c.court_name }}（{{ c.court_id }}）吗？若该场地已被比赛引用，系统将阻止删除。">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash me-1"></i>删除
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-hint"><i class="bi bi-building-x me-1"></i>没有符合条件的场地，请调整检索条件。</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 新增 / 编辑弹窗 -->
+<div class="modal fade" id="courtModal" tabindex="-1" aria-labelledby="courtModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('base_data.court_save') }}" id="courtForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="courtModalTitle">新增场地</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="court_id" id="cf-court_id" value="">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label required" for="cf-court_name">场地名称</label>
+              <input type="text" class="form-control" id="cf-court_name" name="court_name"
+                     maxlength="30" required placeholder="如 钻石球场">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label required" for="cf-court_type">场地类型</label>
+              <select class="form-select" id="cf-court_type" name="court_type" required>
+                <option value="" selected disabled>请选择</option>
+                {% for t in court_types %}
+                <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label required" for="cf-capacity">容纳人数</label>
+              <input type="number" class="form-control" id="cf-capacity" name="capacity"
+                     min="0" max="200000" step="1" required placeholder="如 15000">
+            </div>
+          </div>
+          <div class="form-text mt-2">
+            <i class="bi bi-info-circle me-1"></i>新场地状态默认为"可用"；如需维护，请在列表中使用状态下拉框切换为"维护中"。
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check2 me-1"></i>保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+  var modalEl = document.getElementById('courtModal');
+  if (!modalEl) { return; }
+  var form = document.getElementById('courtForm');
+  var titleEl = document.getElementById('courtModalTitle');
+  var fields = ['court_id', 'court_name', 'court_type', 'capacity'];
+
+  function setField(name, value) {
+    var el = form.querySelector('[name="' + name + '"]');
+    if (el) { el.value = (value === null || value === undefined) ? '' : value; }
+  }
+
+  modalEl.addEventListener('show.bs.modal', function (event) {
+    var btn = event.relatedTarget;
+    if (!btn) { return; }
+    form.reset();
+    var mode = btn.getAttribute('data-mode') || 'create';
+    if (mode === 'edit') {
+      titleEl.textContent = '编辑场地';
+      fields.forEach(function (name) {
+        setField(name, btn.getAttribute('data-' + name.replace(/_/g, '-')));
+      });
+    } else {
+      titleEl.textContent = '新增场地';
+      setField('court_id', '');
+    }
+  });
+})();
+</script>
+{% endblock %}

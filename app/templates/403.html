@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}无权访问 · {{ app_short }}{% endblock %}
+{% block page_title %}无权访问{% endblock %}
+{% block page_sub %}权限控制：角色 → 菜单 → 操作（报告 4.7 节）{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card border-danger">
+      <div class="card-header text-danger"><span><i class="bi bi-shield-exclamation me-1"></i>403 无权访问</span></div>
+      <div class="card-body">
+        <p class="mb-2">您当前的角色{% if staff %}（<strong>{{ role_name(staff.role) }}</strong>）{% endif %}没有访问该功能的权限。</p>
+        <p class="text-muted small mb-3">
+          系统按"角色—菜单—操作"三级控制权限：菜单只显示角色可用的功能，同时在后台对每个页面入口再次校验，
+          直接输入网址无法绕过菜单。如需使用该功能，请联系系统管理员调整角色。
+        </p>
+        {% if staff %}
+          <a class="btn btn-success" href="{{ url_for('dashboard.index') }}"><i class="bi bi-speedometer2 me-1"></i>返回工作台</a>
+        {% else %}
+          <a class="btn btn-success" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right me-1"></i>去登录</a>
+          <a class="btn btn-light border" href="{{ url_for('public.index') }}">观众查询端</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}数据库连接失败 · {{ app_short }}{% endblock %}
+{% block page_title %}数据库连接失败{% endblock %}
+{% block page_sub %}请检查 MySQL 服务与 config.py / .env 中的连接参数{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-danger">
+      <div class="card-header text-danger"><span><i class="bi bi-database-x me-1"></i>无法连接 MySQL 数据库</span></div>
+      <div class="card-body">
+        <p class="mb-2">程序已启动，但读取数据时连接数据库失败。请按顺序检查：</p>
+        <ol class="small">
+          <li>MySQL 服务是否正在运行（命令行执行 <code>mysql -u root -p -e "select 1"</code> 验证）；</li>
+          <li>项目根目录的 <code>.env</code> 中 <code>DB_PASSWORD</code> 是否为本机 MySQL 的真实密码；</li>
+          <li>是否已经执行过 <code>python tools/init_db.py</code> 建库建表。</li>
+        </ol>
+        <div class="bg-light border rounded p-2 small mt-2">
+          <div>当前配置：<code>{{ cfg.user }}@{{ cfg.host }}:{{ cfg.port }}/{{ cfg.database }}</code></div>
+          <div class="text-danger mt-1" style="white-space:pre-wrap;">{{ error }}</div>
+        </div>
+        <a class="btn btn-success mt-3" href="{{ url_for('public.index') }}">重试</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

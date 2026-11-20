@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% block title %}账号管理 · {{ app_short }}{% endblock %}
+{% block page_title %}账号管理{% endblock %}
+{% block page_sub %}维护工作人员登录账号、岗位与角色权限（仅系统管理员可操作）{% endblock %}
+
+{% block content %}
+<!-- 账号统计（2.2 节：按角色授权、按账号状态控制登录） -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card stat-card stat-primary h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.total }}</div>
+          <div class="stat-label">账号总数</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-people"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card stat-info h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.active }}</div>
+          <div class="stat-label">启用中账号</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-person-check"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card stat-danger h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.disabled }}</div>
+          <div class="stat-label">已停用账号</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-person-slash"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card stat-warning h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.admins }}</div>
+          <div class="stat-label">系统管理员</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-shield-lock"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 检索条件 -->
+<div class="card mb-3">
+  <div class="card-body">
+    <form class="row g-2 align-items-end" method="get" action="{{ url_for('system.staff_list') }}">
+      <div class="col-md-4">
+        <label class="form-label" for="keyword">关键字</label>
+        <input class="form-control" type="search" id="keyword" name="keyword" value="{{ keyword }}"
+               placeholder="员工编号 / 姓名 / 登录账号 / 岗位">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="role">角色</label>
+        <select class="form-select" id="role" name="role">
+          <option value="">全部角色</option>
+          {% for code in role_codes %}
+          <option value="{{ code }}" {% if role == code %}selected{% endif %}>{{ role_name(code) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="status">状态</label>
+        <select class="form-select" id="status" name="status">
+          <option value="">全部状态</option>
+          {% for code in status_codes %}
+          <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ STAFF_STATUS[code] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button class="btn btn-success" type="submit"><i class="bi bi-search me-1"></i>查询</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('system.staff_list') }}">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>重置
+        </a>
+        <button class="btn btn-primary ms-auto" type="button"
+                data-bs-toggle="modal" data-bs-target="#createStaffModal">
+          <i class="bi bi-person-plus me-1"></i>新增账号
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 账号列表 -->
+<div class="card mb-3">
+  <div class="card-header">
+    <span><i class="bi bi-person-gear me-1"></i>账号列表（{{ staff_rows|length }} 个）</span>
+    <span class="small text-muted">当前登录：{{ current.name }} · {{ current.staff_id }}</span>
+  </div>
+  <div class="card-body p-0">
+    {% if staff_rows %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>员工编号</th>
+            <th>姓名</th>
+            <th>岗位</th>
+            <th>登录账号</th>
+            <th>角色</th>
+            <th>状态</th>
+            <th>创建时间</th>
+            <th class="text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in staff_rows %}
+          {% set is_self = current and s.staff_id == current.staff_id %}
+          <tr class="{% if s.status == 'D' %}text-muted{% endif %}">
+            <td>
+              <code>{{ s.staff_id }}</code>
+              {% if is_self %}<span class="badge text-bg-info ms-1">当前登录</span>{% endif %}
+            </td>
+            <td class="fw-semibold">{{ s.name }}</td>
+            <td>{{ s.post }}</td>
+            <td>{{ s.login_name }}</td>
+            <td><span class="badge text-bg-light border">{{ role_name(s.role) }}</span></td>
+            <td>
+              {% if s.status == 'A' %}
+              <span class="badge text-bg-success">启用</span>
+              {% else %}
+              <span class="badge text-bg-secondary">停用</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted text-nowrap">
+              {{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '—' }}
+            </td>
+            <td class="text-end text-nowrap">
+              <button type="button" class="btn btn-sm btn-outline-success" title="修改姓名/岗位/角色"
+                      data-bs-toggle="modal" data-bs-target="#editStaffModal"
+                      data-action="{{ url_for('system.staff_update', staff_id=s.staff_id) }}"
+                      data-staff-id="{{ s.staff_id }}"
+                      data-name="{{ s.name }}"
+                      data-post="{{ s.post }}"
+                      data-role="{{ s.role }}"
+                      data-is-self="{{ '1' if is_self else '0' }}">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+
+              <form method="post" class="d-inline"
+                    action="{{ url_for('system.staff_reset', staff_id=s.staff_id) }}"
+                    data-confirm="确定将 {{ s.name }} 的登录密码重置为 {{ default_password }} 吗？重置后需通知本人。">
+                <button class="btn btn-sm btn-outline-warning" type="submit"
+                        title="重置密码为 {{ default_password }}">
+                  <i class="bi bi-key"></i>
+                </button>
+              </form>
+
+              {% if s.status == 'A' %}
+              <form method="post" class="d-inline"
+                    action="{{ url_for('system.staff_toggle', staff_id=s.staff_id) }}"
+                    data-confirm="确定停用账号 {{ s.login_name }} 吗？停用后该账号将无法登录系统。">
+                <button class="btn btn-sm btn-outline-danger" type="submit"
+                        title="{% if is_self %}不能停用当前登录账号{% else %}停用账号{% endif %}"
+                        {% if is_self %}disabled{% endif %}>
+                  <i class="bi bi-pause-circle"></i>
+                </button>
+              </form>
+              {% else %}
+              <form method="post" class="d-inline"
+                    action="{{ url_for('system.staff_toggle', staff_id=s.staff_id) }}"
+                    data-confirm="确定启用账号 {{ s.login_name }} 吗？启用后该账号可以重新登录。">
+                <button class="btn btn-sm btn-outline-success" type="submit" title="启用账号">
+                  <i class="bi bi-play-circle"></i>
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-hint"><i class="bi bi-person-x me-1"></i>没有符合条件的账号</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 角色权限说明（报告 2.2 节） -->
+<div class="card">
+  <div class="card-header"><span><i class="bi bi-shield-check me-1"></i>角色权限说明</span></div>
+  <div class="card-body">
+    <div class="row g-3 small">
+      <div class="col-md-4">
+        <div class="fw-semibold mb-1"><i class="bi bi-shield-lock text-success me-1"></i>系统管理员</div>
+        <div class="text-muted">全部功能：账号管理、基础数据、赛程编排、成绩录入与统计。</div>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold mb-1"><i class="bi bi-calendar3 text-success me-1"></i>赛事编排员</div>
+        <div class="text-muted">工作台、基础数据管理、赛程编排与赛程表查询。</div>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold mb-1"><i class="bi bi-trophy text-success me-1"></i>成绩录入员</div>
+        <div class="text-muted">工作台、比赛成绩录入、统计报表查看与导出。</div>
+      </div>
+    </div>
+    <div class="form-text mt-2">
+      <i class="bi bi-info-circle me-1"></i>
+      新增账号与重置密码都会写入操作日志；不能停用当前登录账号，系统始终保留至少一名启用状态的管理员。
+    </div>
+  </div>
+</div>
+
+<!-- 新增账号弹窗 -->
+<div class="modal fade" id="createStaffModal" tabindex="-1" aria-labelledby="createStaffModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('system.staff_create') }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createStaffModalLabel">
+            <i class="bi bi-person-plus me-1"></i>新增工作人员账号
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label required" for="create_name">姓名</label>
+              <input class="form-control" id="create_name" name="name" maxlength="30"
+                     placeholder="如：赵管理" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label required" for="create_post">岗位</label>
+              <input class="form-control" id="create_post" name="post" maxlength="30"
+                     placeholder="如：系统管理员" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label required" for="create_login_name">登录账号</label>
+              <input class="form-control" id="create_login_name" name="login_name" maxlength="30"
+                     pattern="[A-Za-z0-9_.-]+" placeholder="字母/数字/下划线"
+                     title="只能包含字母、数字、下划线、点和短横线" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label required" for="create_role">角色</label>
+              <select class="form-select" id="create_role" name="role" required>
+                <option value="">请选择角色</option>
+                {% for code in role_codes %}
+                <option value="{{ code }}">{{ role_name(code) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label required" for="create_password">初始密码</label>
+              <input class="form-control" type="password" id="create_password" name="password"
+                     minlength="6" maxlength="50" autocomplete="new-password"
+                     placeholder="不少于 6 位" required>
+              <div class="form-text">密码以加盐哈希方式保存，建议工作人员首次登录后自行修改。</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>保存账号</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 修改账号弹窗：action 与字段值由下方脚本按行填入 -->
+<div class="modal fade" id="editStaffModal" tabindex="-1" aria-labelledby="editStaffModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" id="editStaffForm" action="#">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editStaffModalLabel">
+            <i class="bi bi-pencil-square me-1"></i>修改账号资料
+            <span class="text-muted small" id="edit_staff_id_text"></span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label required" for="edit_name">姓名</label>
+              <input class="form-control" id="edit_name" name="name" maxlength="30" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label required" for="edit_post">岗位</label>
+              <input class="form-control" id="edit_post" name="post" maxlength="30" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label required" for="edit_role">角色</label>
+              <select class="form-select" id="edit_role" name="role" required>
+                {% for code in role_codes %}
+                <option value="{{ code }}">{{ role_name(code) }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text d-none text-warning" id="edit_self_hint">
+                <i class="bi bi-exclamation-triangle me-1"></i>不能修改当前登录账号的角色。
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>保存修改</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+  // 点击"编辑"按钮时，把该行数据填入修改弹窗（避免为每个账号生成一个弹窗）
+  var modalEl = document.getElementById('editStaffModal');
+  if (!modalEl) { return; }
+  modalEl.addEventListener('show.bs.modal', function (event) {
+    var btn = event.relatedTarget;
+    if (!btn) { return; }
+    var form = document.getElementById('editStaffForm');
+    form.setAttribute('action', btn.getAttribute('data-action'));
+    document.getElementById('edit_staff_id_text').textContent = '（' + btn.getAttribute('data-staff-id') + '）';
+    document.getElementById('edit_name').value = btn.getAttribute('data-name');
+    document.getElementById('edit_post').value = btn.getAttribute('data-post');
+    document.getElementById('edit_role').value = btn.getAttribute('data-role');
+    var hint = document.getElementById('edit_self_hint');
+    var roleSelect = document.getElementById('edit_role');
+    if (btn.getAttribute('data-is-self') === '1') {
+      hint.classList.remove('d-none');
+      roleSelect.setAttribute('title', '不能修改当前登录账号的角色');
+    } else {
+      hint.classList.add('d-none');
+      roleSelect.removeAttribute('title');
+    }
+  });
+})();
+</script>
+{% endblock %}

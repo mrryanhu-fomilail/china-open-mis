@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}赛事赛程 · {{ app_short }}{% endblock %}
+
+{% block content %}
+<!-- 日期选择与当日概况（公开只读：仅链接跳转，无表单提交） -->
+<div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+  <div>
+    <h5 class="mb-1"><i class="bi bi-calendar3 me-1"></i>{{ day }}（{{ weekday }}）赛程</h5>
+    <div class="text-muted small">
+      当日共 {{ matches|length }} 场比赛，其中已结束 {{ finished_count }} 场 ·
+      数据仅供观众查询参考
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    {% if prev_day %}
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('public.index', date=prev_day) }}">
+      <i class="bi bi-chevron-left"></i>前一天
+    </a>
+    {% endif %}
+    <select class="form-select form-select-sm" id="daySelect" style="width:auto" aria-label="选择日期">
+      {% for d in day_options %}
+      <option value="{{ url_for('public.index', date=d.date) }}"
+              {% if d.date == day %}selected{% endif %}>{{ d.label }}（{{ d.count }} 场）</option>
+      {% endfor %}
+    </select>
+    {% if next_day %}
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('public.index', date=next_day) }}">
+      后一天<i class="bi bi-chevron-right"></i>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if groups %}
+  {% for group in groups %}
+  <div class="card mb-3">
+    <div class="card-header">
+      <span>
+        <i class="bi bi-geo-alt me-1"></i>{{ group.court_name }}
+        <span class="text-muted small">· {{ group.court_type }} · {{ group.capacity }} 座</span>
+      </span>
+      <span class="badge text-bg-light">{{ group.matches|length }} 场</span>
+    </div>
+    <div class="card-body py-2">
+      {% for m in group.matches %}
+      <div class="public-match-row">
+        <div class="time-block">
+          {{ m.start_time }}
+          <div class="text-muted fw-normal small">{{ m.start_end }}</div>
+        </div>
+        <div class="court-block">
+          {{ m.event_name }}<br>
+          <span class="text-muted">{{ m.round_name }}</span>
+        </div>
+        <div class="flex-grow-1">
+          <span class="team-name {% if m.winner_team == 1 %}text-success{% endif %}">{{ m.team1_text }}</span>
+          <span class="versus">VS</span>
+          <span class="team-name {% if m.winner_team == 2 %}text-success{% endif %}">{{ m.team2_text }}</span>
+        </div>
+        <div class="text-end" style="width: 132px">
+          <span class="badge text-bg-{{ MATCH_BADGE[m.status] }}">{{ m.status_name }}</span>
+          <div class="mt-1">
+            {% if m.set_score %}
+            <span class="score-pill">{{ m.set_score }}</span>
+            <div class="text-muted small">{{ m.game_score }}</div>
+            {% else %}
+            <span class="text-muted small">比分待定</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="card">
+  <div class="card-body">
+    <div class="empty-hint">
+      <i class="bi bi-calendar-x me-1"></i>该日期暂无比赛安排，请通过上方日期选择查看其他比赛日。
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // 日期选择：下拉变更时跳转到对应日期的公开赛程（无需表单提交）
+  (function () {
+    var select = document.getElementById('daySelect');
+    if (select) {
+      select.addEventListener('change', function () {
+        if (this.value) { window.location.href = this.value; }
+      });
+    }
+  })();
+</script>
+{% endblock %}

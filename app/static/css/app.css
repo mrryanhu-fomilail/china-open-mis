@@ -1,0 +1,262 @@
+/* =====================================================================
+   中网赛事运营管理系统  自定义样式
+   基础框架使用本地 Bootstrap 5.3，这里只补充布局与赛事风格的细节
+   ===================================================================== */
+:root {
+  --co-green: #1f7a4d;
+  --co-green-dark: #0f5132;
+  --co-lime: #c6f24e;
+  --co-ball: #d7f26b;
+  --co-ink: #1b2a24;
+  --co-bg: #f4f6f3;
+  --sidebar-w: 236px;
+}
+
+body {
+  background: var(--co-bg);
+  color: var(--co-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+/* ---------- 侧边栏布局 ---------- */
+.layout-with-sidebar { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: linear-gradient(180deg, #14503a 0%, #0d3d2c 100%);
+  color: #e8f5ec;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+.sidebar .brand {
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+}
+
+.sidebar .brand .logo {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--co-ball), #a6d93b);
+  color: #14503a; font-weight: 700; font-size: .95rem;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 3px rgba(198, 242, 78, .18);
+}
+
+.sidebar .brand .brand-text { line-height: 1.15; }
+.sidebar .brand .brand-text strong { font-size: .92rem; display: block; }
+.sidebar .brand .brand-text small { font-size: .7rem; color: #b7d7c4; }
+
+.sidebar .nav-group-title {
+  padding: .85rem 1rem .3rem;
+  font-size: .7rem;
+  letter-spacing: .08em;
+  color: #93b8a2;
+  text-transform: uppercase;
+}
+
+.sidebar .nav-link {
+  color: #dbeadf;
+  padding: .5rem 1rem .5rem 1.15rem;
+  font-size: .88rem;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+}
+
+.sidebar .nav-link i { font-size: 1rem; opacity: .85; }
+.sidebar .nav-link:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.sidebar .nav-link.active {
+  background: rgba(198, 242, 78, .12);
+  border-left-color: var(--co-lime);
+  color: #fff;
+  font-weight: 600;
+}
+.sidebar .nav-parent > .nav-link { font-weight: 600; }
+.sidebar .nav-parent .nav-child .nav-link { padding-left: 2.4rem; font-size: .84rem; }
+
+.sidebar .sidebar-footer {
+  margin-top: 1rem;
+  padding: .85rem 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  font-size: .78rem;
+  color: #a9c9b6;
+}
+
+/* ---------- 主区域 ---------- */
+.main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid #e3e8e3;
+  padding: .65rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topbar .page-heading { font-size: 1.02rem; font-weight: 600; margin: 0; }
+.topbar .page-sub { font-size: .76rem; color: #7b8a82; }
+
+.content-area { padding: 1.1rem 1.5rem 2rem; }
+
+/* ---------- 卡片与表格 ---------- */
+.card { border: 1px solid #e3e8e3; border-radius: .6rem; box-shadow: 0 1px 2px rgba(20, 80, 58, .04); }
+.card-header {
+  background: #fbfcfb;
+  border-bottom: 1px solid #edf1ed;
+  font-weight: 600;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+.card-header .bi { color: var(--co-green); }
+
+.stat-card { border-radius: .6rem; overflow: hidden; }
+.stat-card .stat-value { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.stat-card .stat-label { font-size: .8rem; color: #6b7a72; }
+.stat-card .stat-icon {
+  width: 42px; height: 42px; border-radius: .55rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem;
+}
+.stat-card.stat-primary .stat-icon { background: #e3f2e9; color: var(--co-green); }
+.stat-card.stat-warning .stat-icon { background: #fdf1dc; color: #b26a00; }
+.stat-card.stat-danger  .stat-icon { background: #fbe4e4; color: #b02a37; }
+.stat-card.stat-info    .stat-icon { background: #e2eefb; color: #0d6efd; }
+
+.table > :not(caption) > * > * { padding: .55rem .7rem; vertical-align: middle; }
+.table thead th {
+  font-size: .78rem; color: #66756d; font-weight: 600;
+  background: #f7f9f7; border-bottom: 1px solid #e3e8e3; white-space: nowrap;
+}
+.table-hover > tbody > tr:hover > * { background-color: #f3f8f4; }
+.table td { font-size: .86rem; }
+
+.team-name { font-weight: 600; }
+.versus { color: #9aa8a0; font-size: .78rem; padding: 0 .3rem; }
+
+/* ---------- 表单 ---------- */
+.form-label { font-size: .82rem; font-weight: 600; color: #35473d; margin-bottom: .25rem; }
+.form-text { font-size: .74rem; color: #84958b; }
+.form-control, .form-select { font-size: .87rem; }
+.required::after { content: " *"; color: #d63384; }
+
+/* ---------- 冲突提示 ---------- */
+.conflict-list { list-style: none; padding: 0; margin: 0; }
+.conflict-list li {
+  border-left: 4px solid #dc3545;
+  background: #fff5f5;
+  border-radius: .35rem;
+  padding: .5rem .7rem;
+  margin-bottom: .45rem;
+  font-size: .83rem;
+}
+.conflict-list li .conflict-title { font-weight: 600; color: #b02a37; }
+.conflict-list li .conflict-suggest { color: #6b7a72; font-size: .78rem; }
+
+.slot-ok { border-left: 4px solid #198754; background: #f0fbf4; border-radius: .35rem; padding: .5rem .7rem; font-size: .83rem; }
+
+/* ---------- 观众端 ---------- */
+.layout-public { background: #fff; }
+.public-header {
+  background: linear-gradient(120deg, #14503a, #1f7a4d 60%, #2f9e63);
+  color: #fff;
+  padding: .9rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.public-header .brand-title { font-weight: 700; font-size: 1.05rem; }
+.public-header .brand-sub { font-size: .75rem; color: #cfe8d6; }
+.public-header a { color: #eaf7ee; text-decoration: none; font-size: .86rem; }
+.public-header a:hover { color: var(--co-lime); }
+.public-header a.btn-light { color: var(--co-green-dark); font-size: .82rem; }
+.public-header a.btn-light:hover { color: var(--co-green-dark); background: #f3f8f4; }
+.public-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.public-body { padding: 1.25rem 1.5rem 2.5rem; width: 100%; max-width: 1180px; margin: 0 auto; }
+.public-logo {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #d7f26b, #a6d93b);
+  color: #14503a; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+
+.public-match-row {
+  border-bottom: 1px dashed #e3e8e3;
+  padding: .6rem .2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.public-match-row:last-child { border-bottom: none; }
+.public-match-row .time-block { width: 92px; color: var(--co-green); font-weight: 600; font-size: .82rem; }
+.public-match-row .court-block { width: 120px; font-size: .78rem; color: #6b7a72; }
+.score-pill {
+  font-weight: 700; font-size: .85rem; padding: .1rem .5rem;
+  border-radius: .35rem; background: #e3f2e9; color: var(--co-green-dark);
+}
+
+/* ---------- 其他 ---------- */
+.badge-soft { font-weight: 600; }
+.empty-hint { text-align: center; color: #93a29a; padding: 2rem 0; font-size: .86rem; }
+.hero-strip {
+  background: linear-gradient(120deg, #14503a, #1f7a4d 55%, #46b37c);
+  color: #fff; border-radius: .7rem; padding: 1.1rem 1.4rem;
+}
+.hero-strip .hero-title { font-size: 1.25rem; font-weight: 700; }
+.hero-strip .hero-desc { font-size: .84rem; color: #d7eddd; }
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(198, 242, 78, .18), transparent 42%),
+    radial-gradient(circle at 88% 78%, rgba(70, 179, 124, .22), transparent 45%),
+    linear-gradient(135deg, #0d3d2c, #1f7a4d 60%, #2f9e63);
+  padding: 2rem 1rem;
+}
+.login-card { width: 100%; max-width: 860px; border-radius: .9rem; overflow: hidden; box-shadow: 0 18px 50px rgba(0, 0, 0, .28); }
+.login-side { background: linear-gradient(165deg, #14503a, #2f9e63); color: #fff; padding: 2rem 1.7rem; }
+.login-side .login-slogan { font-size: 1.35rem; font-weight: 700; line-height: 1.35; }
+.login-side .login-point { font-size: .82rem; color: #d9eedf; display: flex; gap: .5rem; margin-top: .65rem; }
+.login-side .login-point i { color: var(--co-lime); }
+.login-form-wrap { background: #fff; padding: 2rem 1.9rem; }
+
+.court-card { border: 1px solid #e3e8e3; border-radius: .55rem; padding: .6rem .75rem; font-size: .82rem; background: #fff; }
+.court-card.is-maintenance { border-color: #f2c1c1; background: #fff7f7; }
+
+.log-timeline { font-size: .8rem; }
+.log-timeline .log-item { padding: .35rem 0; border-bottom: 1px dashed #edf1ed; }
+.log-timeline .log-item:last-child { border-bottom: none; }
+
+.quick-link {
+  border: 1px solid #e3e8e3; border-radius: .55rem; padding: .7rem .8rem;
+  display: flex; gap: .6rem; align-items: center; text-decoration: none;
+  color: var(--co-ink); background: #fff; font-size: .85rem; height: 100%;
+}
+.quick-link:hover { border-color: var(--co-green); background: #f5fbf7; color: var(--co-green-dark); }
+.quick-link i { font-size: 1.1rem; color: var(--co-green); }
+
+@media (max-width: 992px) {
+  .layout-with-sidebar { flex-direction: column; }
+  .sidebar { position: static; height: auto; width: 100%; min-width: 0; }
+  .sidebar .nav-parent .nav-child .nav-link { padding-left: 2.4rem; }
+}

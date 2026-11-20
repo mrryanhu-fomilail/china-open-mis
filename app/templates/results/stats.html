@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% block title %}统计报表 · {{ app_short }}{% endblock %}
+{% block page_title %}统计报表{% endblock %}
+{% block page_sub %}已结束比赛的项目 / 场地 / 性别分布、平均实际时长与选手胜率榜（FR-11）{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <div class="d-flex gap-2">
+    <a class="btn btn-sm btn-outline-success" href="{{ url_for('results.index') }}">
+      <i class="bi bi-pencil-square me-1"></i>成绩录入
+    </a>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('results.stats') }}">
+      <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
+    </a>
+  </div>
+  <a class="btn btn-sm btn-success" href="{{ url_for('results.export_stats') }}">
+    <i class="bi bi-download me-1"></i>导出统计 CSV
+  </a>
+</div>
+
+<!-- 整体概览 -->
+<div class="row g-3 mb-3">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-primary h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.total_matches }}</div>
+          <div class="stat-label">总比赛场次</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-info h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.finished }}</div>
+          <div class="stat-label">已结束场次</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-flag"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-warning h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.avg_min if stats.avg_min is not none else '—' }}</div>
+          <div class="stat-label">平均实际时长（分钟）</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-stopwatch"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-danger h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.total_wins }}</div>
+          <div class="stat-label">选手累计胜场 / 负场 {{ stats.total_losses }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-trophy"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- 按项目统计 -->
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <span><i class="bi bi-diagram-3 me-1"></i>按项目统计</span>
+        <span class="text-muted small">场次 / 平均实际时长</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>比赛项目</th>
+                <th class="text-end">总场次</th>
+                <th class="text-end">已结束</th>
+                <th class="text-end">平均时长（分钟）</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in stats.by_event %}
+              <tr>
+                <td><span class="fw-semibold">{{ item.event_name }}</span>
+                  <span class="text-muted small">{{ item.event_code }}</span></td>
+                <td class="text-end">{{ item.total }}</td>
+                <td class="text-end">{{ item.finished }}</td>
+                <td class="text-end">{{ item.avg_min if item.avg_min is not none else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 按性别统计 -->
+  <div class="col-xl-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <span><i class="bi bi-gender-ambiguous me-1"></i>按项目性别统计</span>
+        <span class="text-muted small">已结束场次占比</span>
+      </div>
+      <div class="card-body">
+        {% for item in stats.by_gender %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-semibold">{{ item.label }}</span>
+            <span class="text-muted">
+              {{ item.finished }} 场 · 平均 {{ item.avg_min if item.avg_min is not none else '—' }} 分钟
+            </span>
+          </div>
+          <div class="progress" style="height:8px" role="progressbar"
+               aria-valuenow="{{ item.share }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar bg-success" style="width: {{ item.share }}%"></div>
+          </div>
+          <div class="text-muted small mt-1">占已结束场次 {{ item.share }}%</div>
+        </div>
+        {% endfor %}
+        {% if stats.finished == 0 %}
+        <div class="empty-hint">暂无已结束比赛，录入成绩后自动生成统计。</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 按场地统计 -->
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <span><i class="bi bi-building me-1"></i>按场地统计</span>
+        <span class="text-muted small">使用场次 / 一队 vs 二队胜负分布</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>场地</th>
+                <th class="text-end">总安排</th>
+                <th class="text-end">已结束</th>
+                <th class="text-end">一队胜</th>
+                <th class="text-end">二队胜</th>
+                <th class="text-end">平均时长</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in stats.by_court %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ item.court_name }}</div>
+                  <div class="text-muted small">{{ item.court_id }} · {{ item.court_type }}</div>
+                </td>
+                <td class="text-end">{{ item.total }}</td>
+                <td class="text-end">{{ item.finished }}</td>
+                <td class="text-end">
+                  {% if item.team1_wins %}<span class="badge text-bg-success">{{ item.team1_wins }}</span>{% else %}0{% endif %}
+                </td>
+                <td class="text-end">
+                  {% if item.team2_wins %}<span class="badge text-bg-info">{{ item.team2_wins }}</span>{% else %}0{% endif %}
+                </td>
+                <td class="text-end">{{ item.avg_min if item.avg_min is not none else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 选手胜率榜 -->
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <span><i class="bi bi-trophy me-1"></i>选手胜率榜（前 10）</span>
+        <span class="text-muted small">胜率 = 胜场 /（胜场 + 负场）</span>
+      </div>
+      <div class="card-body p-0">
+        {% if stats.top_players %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>名次</th>
+                <th>选手</th>
+                <th class="text-end">胜 / 负</th>
+                <th class="text-end">胜率</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in stats.top_players %}
+              <tr>
+                <td>
+                  {% if p.rank_no <= 3 %}
+                  <span class="badge text-bg-warning">{{ p.rank_no }}</span>
+                  {% else %}
+                  <span class="text-muted">{{ p.rank_no }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ p.name_cn }}</div>
+                  <div class="text-muted small">{{ p.player_id }} · {{ p.nation }}</div>
+                </td>
+                <td class="text-end">{{ p.win_count }} / {{ p.loss_count }}</td>
+                <td class="text-end fw-semibold">{{ p.win_rate }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-hint">暂无选手胜负记录，录入比赛成绩后自动生成胜率榜。</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

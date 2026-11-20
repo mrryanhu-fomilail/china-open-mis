@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block title %}工作台 · {{ app_short }}{% endblock %}
+{% block page_title %}工作台{% endblock %}
+{% block page_sub %}赛事周期 {{ event_start }} 至 {{ event_end }} · 展示日期 {{ show_date }}{% endblock %}
+
+{% block content %}
+<div class="hero-strip mb-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+  <div>
+    <div class="hero-title">欢迎，{{ current_staff.name }}（{{ role_name(current_staff.role) }}）</div>
+    <div class="hero-desc mt-1">中网赛事运营管理系统 · 基础数据、赛程编排、成绩统计与公开查询一体化</div>
+  </div>
+  <div class="d-flex gap-2">
+    <span class="badge text-bg-light">赛事周期 {{ event_start }} ~ {{ event_end }}</span>
+  </div>
+</div>
+
+<!-- 三个提示条：当日比赛场次、待处理冲突数、待录比分场次（表 11） -->
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card stat-card stat-primary h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.today_matches }}</div>
+          <div class="stat-label">当日比赛场次（{{ show_date }}）</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-calendar3"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card stat-danger h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.conflict_count }}</div>
+          <div class="stat-label">待处理冲突数（选手/场地/裁判）</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card stat-warning h-100">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="stat-value">{{ stats.pending_score }}</div>
+          <div class="stat-label">待录比分场次（未开始 + 进行中）</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-pencil-square"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header">
+        <span><i class="bi bi-calendar-week me-1"></i>{{ show_date }} 赛程</span>
+        <a class="btn btn-sm btn-outline-success" href="{{ url_for('schedule.list_all') if current_staff.role in ['admin','scheduler'] else url_for('public.index') }}">查看完整赛程</a>
+      </div>
+      <div class="card-body p-0">
+        {% if today_matches %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>时间</th><th>场地</th><th>项目/轮次</th><th>对阵</th><th>状态</th><th>比分</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in today_matches %}
+              <tr>
+                <td>{{ m.start_time }}<br><span class="text-muted small">{{ m.start_end }}</span></td>
+                <td>{{ m.court_name }}</td>
+                <td>{{ m.event_name }}<br><span class="text-muted small">{{ m.round_name }}</span></td>
+                <td>
+                  <span class="team-name">{{ m.team1_text }}</span>
+                  <span class="versus">VS</span>
+                  <span class="team-name">{{ m.team2_text }}</span>
+                </td>
+                <td><span class="badge text-bg-{{ MATCH_BADGE[m.status] }}">{{ m.status_name }}</span></td>
+                <td>
+                  {% if m.set_score %}<span class="score-pill">{{ m.set_score }}</span>{% else %}<span class="text-muted small">—</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <div class="empty-hint"><i class="bi bi-calendar-x me-1"></i>该日期暂无比赛安排</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span><i class="bi bi-clock-history me-1"></i>最近操作日志</span>
+        {% if current_staff.role == 'admin' %}
+        <a class="small" href="{{ url_for('system.log_list') }}">全部日志</a>
+        {% endif %}
+      </div>
+      <div class="card-body log-timeline">
+        {% if recent_logs %}
+          {% for log in recent_logs %}
+          <div class="log-item d-flex justify-content-between">
+            <div><strong>{{ log.staff_name or '系统' }}</strong> {{ log.action }}
+              {% if log.target %}<span class="text-muted">· {{ log.target }}</span>{% endif %}
+              {% if log.detail %}<div class="text-muted small">{{ log.detail }}</div>{% endif %}
+            </div>
+            <div class="text-muted small text-nowrap">{{ log.created_at.strftime('%m-%d %H:%M') if log.created_at else '' }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-hint">暂无操作日志</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><span><i class="bi bi-lightning-charge me-1"></i>快捷入口</span></div>
+      <div class="card-body">
+        <div class="row g-2">
+          {% if current_staff.role in ['admin','scheduler'] %}
+          <div class="col-6"><a class="quick-link" href="{{ url_for('schedule.index') }}"><i class="bi bi-calendar-plus"></i><span>编排比赛</span></a></div>
+          <div class="col-6"><a class="quick-link" href="{{ url_for('base_data.player_list') }}"><i class="bi bi-person-badge"></i><span>运动员档案</span></a></div>
+          <div class="col-6"><a class="quick-link" href="{{ url_for('base_data.court_list') }}"><i class="bi bi-building"></i><span>场地档案</span></a></div>
+          <div class="col-6"><a class="quick-link" href="{{ url_for('base_data.referee_list') }}"><i class="bi bi-star"></i><span>裁判档案</span></a></div>
+          {% endif %}
+          {% if current_staff.role in ['admin','recorder'] %}
+          <div class="col-6"><a class="quick-link" href="{{ url_for('results.index') }}"><i class="bi bi-pencil-square"></i><span>成绩录入</span></a></div>
+          <div class="col-6"><a class="quick-link" href="{{ url_for('results.stats') }}"><i class="bi bi-bar-chart"></i><span>统计报表</span></a></div>
+          {% endif %}
+          {% if current_staff.role == 'admin' %}
+          <div class="col-6"><a class="quick-link" href="{{ url_for('system.staff_list') }}"><i class="bi bi-person-gear"></i><span>账号管理</span></a></div>
+          <div class="col-6"><a class="quick-link" href="{{ url_for('system.log_list') }}"><i class="bi bi-journal-text"></i><span>操作日志</span></a></div>
+          {% endif %}
+          <div class="col-6"><a class="quick-link" href="{{ url_for('public.index') }}" target="_blank"><i class="bi bi-globe2"></i><span>观众端</span></a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><span><i class="bi bi-building me-1"></i>场地状态</span>
+        <a class="small" href="{{ url_for('base_data.court_list') if current_staff.role in ['admin','scheduler'] else '#' }}">管理</a>
+      </div>
+      <div class="card-body">
+        {% for c in court_summary %}
+        <div class="court-card mb-2 {% if c.status == 'M' %}is-maintenance{% endif %} d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ c.court_name }}</strong>
+            <div class="text-muted small">{{ c.court_type }} · {{ c.capacity }} 座</div>
+          </div>
+          <span class="badge text-bg-{{ COURT_BADGE[c.status] }}">{{ court_status_name(c.status) }}</span>
+        </div>
+        {% endfor %}
+        {% if stats.maintenance_courts > 0 %}
+        <div class="small text-danger mt-1"><i class="bi bi-exclamation-circle me-1"></i>有 {{ stats.maintenance_courts }} 片场地处于维护中，编排时自动排除。</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span><i class="bi bi-info-circle me-1"></i>数据概览</span></div>
+      <div class="card-body small">
+        <div class="d-flex justify-content-between py-1"><span>运动员</span><strong>{{ stats.total_players }} 人</strong></div>
+        <div class="d-flex justify-content-between py-1"><span>裁判</span><strong>{{ stats.total_referees }} 人</strong></div>
+        <div class="d-flex justify-content-between py-1"><span>场地</span><strong>{{ stats.total_courts }} 片</strong></div>
+        <div class="d-flex justify-content-between py-1"><span>比赛总数</span><strong>{{ stats.total_matches }} 场</strong></div>
+        <div class="d-flex justify-content-between py-1"><span>已结束</span><strong>{{ stats.finished }} 场</strong></div>
+        <div class="d-flex justify-content-between py-1"><span>进行中</span><strong>{{ stats.in_progress }} 场</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

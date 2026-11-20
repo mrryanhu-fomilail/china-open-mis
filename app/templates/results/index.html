@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% block title %}成绩录入 · {{ app_short }}{% endblock %}
+{% block page_title %}成绩录入{% endblock %}
+{% block page_sub %}左侧选择未结束比赛 → 开始比赛 → 录入盘分、局分明细与实际时长（FR-09 / FR-10 / BR-04）{% endblock %}
+
+{% block content %}
+{% set fv = form or {} %}
+<div class="row g-3">
+  <!-- 左：未结束比赛列表 -->
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <span><i class="bi bi-list-check me-1"></i>未结束比赛（{{ matches|length }} 场）</span>
+        <a class="btn btn-sm btn-outline-success" href="{{ url_for('results.stats') }}">
+          <i class="bi bi-bar-chart me-1"></i>统计报表
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if matches %}
+        <div class="table-responsive" style="max-height: 76vh; overflow-y: auto;">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>比赛 / 时间 / 场地</th>
+                <th>对阵</th>
+                <th>状态</th>
+                <th class="text-end">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in matches %}
+              <tr {% if selected and selected.match_id == m.match_id %}class="table-active"{% endif %}>
+                <td>
+                  <div class="fw-semibold">{{ m.match_id }}</div>
+                  <div class="text-muted small">{{ m.match_date }} {{ m.start_end }}</div>
+                  <div class="text-muted small">{{ m.court_name }} · {{ m.event_name }}{{ m.round_name }}</div>
+                </td>
+                <td>
+                  <span class="team-name">{{ m.team1_text }}</span>
+                  <span class="versus">VS</span>
+                  <span class="team-name">{{ m.team2_text }}</span>
+                </td>
+                <td>
+                  <span class="badge text-bg-{{ MATCH_BADGE[m.status] }}">{{ m.status_name }}</span>
+                </td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-success"
+                     href="{{ url_for('results.index', match_id=m.match_id) }}">选择</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-hint">
+          <i class="bi bi-check2-circle me-1"></i>所有比赛均已结束，暂无待录分的比赛。
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 右：录分表单 -->
+  <div class="col-xl-7">
+    {% if selected %}
+    <div class="card">
+      <div class="card-header">
+        <span>
+          <i class="bi bi-pencil-square me-1"></i>{{ selected.match_id }}
+          {{ selected.event_name }} · {{ selected.round_name }}
+        </span>
+        <span class="badge text-bg-{{ MATCH_BADGE[selected.status] }}">{{ selected.status_name }}</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 small mb-3">
+          <div class="col-sm-6 col-lg-3"><span class="text-muted">比赛日期：</span>{{ selected.match_date }}</div>
+          <div class="col-sm-6 col-lg-3"><span class="text-muted">比赛时间：</span>{{ selected.start_end }}</div>
+          <div class="col-sm-6 col-lg-3"><span class="text-muted">比赛场地：</span>{{ selected.court_name }}</div>
+          <div class="col-sm-6 col-lg-3"><span class="text-muted">主裁判：</span>{{ selected.referee_name }}</div>
+        </div>
+
+        <div class="bg-light rounded-3 text-center py-2 mb-3">
+          <span class="text-muted small me-1">一队</span>
+          <span class="team-name">{{ selected.team1_text }}</span>
+          <span class="versus mx-2">VS</span>
+          <span class="team-name">{{ selected.team2_text }}</span>
+          <span class="text-muted small ms-1">二队</span>
+        </div>
+
+        {% if selected.status == 'N' %}
+          <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            该场比赛尚未开始，请先点击「开始比赛」把状态置为进行中，再录入比分。
+          </div>
+          <form method="post" action="{{ url_for('results.start_match', match_id=selected.match_id) }}">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-play-fill me-1"></i>开始比赛
+            </button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('results.index') }}">取消选择</a>
+          </form>
+        {% elif selected.status == 'F' %}
+          <div class="alert alert-warning py-2 small mb-3">
+            <i class="bi bi-lock me-1"></i>
+            该场比赛成绩已锁定（状态：已结束），不能重复录入。
+          </div>
+          <div class="row g-2 text-center">
+            <div class="col-sm-4">
+              <div class="border rounded-3 p-2">
+                <div class="text-muted small">盘分</div>
+                <div class="fs-5 fw-semibold">{{ selected.set_score or '—' }}</div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="border rounded-3 p-2">
+                <div class="text-muted small">局分明细</div>
+                <div class="fs-6 fw-semibold">{{ selected.game_score or '—' }}</div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="border rounded-3 p-2">
+                <div class="text-muted small">实际时长</div>
+                <div class="fs-5 fw-semibold">{{ (selected.actual_min ~ ' 分钟') if selected.actual_min else '—' }}</div>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <form method="post" action="{{ url_for('results.save_score', match_id=selected.match_id) }}">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label required" for="set_score">盘分</label>
+                <input class="form-control {% if errors.set_score %}is-invalid{% endif %}"
+                       id="set_score" name="set_score" required
+                       value="{{ fv.get('set_score', '') }}" placeholder="如 2:1" pattern="[0-3]:[0-3]">
+                <div class="form-text">三盘两胜制：胜方 2 盘，负方 0 或 1 盘。</div>
+                {% if errors.set_score %}<div class="invalid-feedback d-block">{{ errors.set_score }}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label required" for="game_score">局分明细</label>
+                <input class="form-control {% if errors.game_score %}is-invalid{% endif %}"
+                       id="game_score" name="game_score" required
+                       value="{{ fv.get('game_score', '') }}" placeholder="如 6:4 3:6 7:5"
+                       pattern="[0-9]{1,2}:[0-9]{1,2}( [0-9]{1,2}:[0-9]{1,2}){0,2}">
+                <div class="form-text">数字:数字，用空格分隔，盘数须与盘分一致（最多三盘）。</div>
+                {% if errors.game_score %}<div class="invalid-feedback d-block">{{ errors.game_score }}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="actual_min">实际时长（分钟）</label>
+                <input class="form-control {% if errors.actual_min %}is-invalid{% endif %}"
+                       id="actual_min" name="actual_min" type="number" min="10" max="600"
+                       value="{{ fv.get('actual_min', '') }}" placeholder="如 128">
+                <div class="form-text">10—600 之间的整数，用于统计平均比赛时长。</div>
+                {% if errors.actual_min %}<div class="invalid-feedback d-block">{{ errors.actual_min }}</div>{% endif %}
+              </div>
+            </div>
+
+            <div class="mt-3 d-flex gap-2">
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-check2-circle me-1"></i>保存成绩
+              </button>
+              <a class="btn btn-outline-secondary" href="{{ url_for('results.index', match_id=selected.match_id) }}">恢复初始值</a>
+              <a class="btn btn-outline-secondary" href="{{ url_for('results.index') }}">取消选择</a>
+            </div>
+            <div class="form-text mt-2">
+              <i class="bi bi-shield-check me-1"></i>保存后比赛状态置为「已结束」，并在同一事务内累加双方选手的胜场 / 负场；成绩录入后不可再次录入。
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column justify-content-center">
+        <div class="empty-hint">
+          <i class="bi bi-hand-index-thumb display-6 d-block mb-2"></i>
+          请从左侧「未结束比赛」列表选择一场比赛，右侧将显示对阵信息与录分表单。
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
